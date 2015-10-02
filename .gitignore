@@ -76,3 +76,7 @@ Thumbs.db
 # Accord files #
 ################
 personalenv.xml
+
+# Sphinx files #
+###############
+build/
