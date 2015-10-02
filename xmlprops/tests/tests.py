@@ -43,9 +43,9 @@ props_xml_01='''<?xml version="1.0" encoding="UTF-8"?>
 
 class TestXMLProps(unittest.TestCase):
 
-    def test_get_fix(self):
+    def test_get_match(self):
         xmlprops=XMLProps(props=props_xml_01)
-        self.assertEqual(xmlprops.get_by_fix(key_prefix='db1.')['password'], 'passworddb')
+        self.assertEqual(xmlprops.get_match(key_prefix='db1.')['password'], 'passworddb')
 
 
 if __name__ == '__main__':

@@ -82,10 +82,10 @@ class BinaryDistribution(Distribution):
 setup_info = OrderedDict([
     ('name', package_name),
     ('version',version),
-    ('url','https://github.com/Acrisel/projenv'),
+    ('url','https://github.com/Acrisel/xmlprops'),
     ('author','Acrisel Team'),
     ('author_email','support@acrisel.com'),
-    ('description','ProjEnv allows the use of hierarchical parameter structure for projects.'),
+    ('description','XMLProps allows the use XML based properties files similar to Java.'),
     ('long_description',long_description),
     ('license','MIT'),
     #('include_package_data',True),

@@ -108,9 +108,9 @@ class __XMLProps(dict):
             decrypted_value=value=base64.b64decode(value).decode()
             store[decrypted_name]=decrypted_value
             
-    def get_by_fix(self, key_prefix=None, key_suffix=None, key_sep=None, value_sep = None, decrypt=False):
+    def get_match(self, key_prefix=None, key_suffix=None, key_sep=None, value_sep = None, decrypt=False):
         '''
-        Key is found if it has prefix and suffix 
+        Key is found if it has key_prefix and key_suffix 
         Each key found is loaded into a dictionary
         The key used in the returned dictionary is stripped of its prefix.
         The function returns this newly created dictionary
@@ -136,7 +136,7 @@ class __XMLProps(dict):
                 
         return this_dict
     
-    def get_by_re(self, key_re=None, value_sep = None, decrypt=False):
+    def get_re(self, key_re=None, value_sep = None, decrypt=False):
         ''' 
         Looks for keys that fits regular expression.
         
@@ -158,13 +158,12 @@ class __XMLProps(dict):
                 self.__set(store=this_dict, name=this_key, value=value, decrypt=decrypt)
         return this_dict
     
-    def get_if_has(self, key_value=None, ignore_case=False, exact_match=False, value_sep = None, decrypt=False):
+    def get_contain(self, key_value=None, ignore_case=False, exact_match=False, value_sep = None, decrypt=False):
         ''' 
         Looks for keys that that has key_value in them.
         
         ignore_case: if set will ignore the case where finding a match
-        exact: if set, will take only keys that equals key_value (with 
-        considerations to ignore case)
+        exact: if set, will take only keys that equals key_value (with considerations to case)
         
         If value_sep provided, it is used to separate the value of the element
         into a list.
