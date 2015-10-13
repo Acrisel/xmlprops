@@ -19,31 +19,53 @@ except ImportError:
     
 class XMLPropsError(Exception):
     pass
+
+class XMLPropsWriteError(XMLPropsError):
+    pass
+
     
 class __XMLProps(dict):
-    '''
-    xmlprops reads and manipulate properties file Java XML style
-    It keeps properties and provides service to pick them
+    ''' Base class for XMLProps XMLProps family classes for shared methods
     
-    init accepts a properties file to read.  
+    As base class for XMLProps family, provides access and manipulation 
+    methods that used by XMLProps family.  As such it accepts already 
+    loaded XML ElementTree. 
+    
+    XMLProps reads and manipulate properties file Java XML style
+    It keeps properties and provides service to pick them
         
-    If file doesn't exists, it is assumes that 
-    a new properties file is to be created.
+    A property is represented by key value XML entries.
+    
+    Key: property path.  string names separated by, usually, '.' (dot).
+         key examples:
+             'factory_name'
+             'arizona.capitol'
+             'texas.dallas.mayor'
+             
+    The property name is the last element in property path (similar to basename in path methods)
+    The property hierarchy is the path to it.
         
+    Value: property value.  string representing the value assignment to property
+    
     The get dict function '[]' was enhanced to include hierarchical get.
     on the item a.b.c; get will try to get c, a.c, and a.b.c.
     The last one available, wins.
-    
-    The write() function updates 
+
     '''
     
     def __init__(self, root, environ=None, key_sep='.', decrypt_method=None, decrypt_params={}): 
-        '''
-            Initialize properties object out of conf_file
-            Parameters:
-                conf_file: properties file to load
-                environ: environment by which to translate values
-                sep: default separator to use as key parts separator
+        '''Transform property XML etree into properties dictionary
+        
+        Args:
+            root: etree root element from which to start process properties
+            environ: environment by which to translate values
+            sep: default separator to use as key parts separator
+            
+        Returns:
+            XMLProps object
+            
+        Raises:
+            N/A
         '''
         super().__init__()
         
@@ -56,6 +78,7 @@ class __XMLProps(dict):
         elif found_environ is not None and isinstance(environ, Environ):
             env=environ._asdict()
                 
+        # translate props XML tree into dictionary
         for entry in root.findall('entry'):
             key=entry.attrib['key']
             value=expandvars(entry.text, env)
@@ -63,20 +86,48 @@ class __XMLProps(dict):
             env[key]=value
             
     def set(self, key, value):
+        ''' sets dict entry 'key' to 'value'
+        
+        Args:
+            key: string of property name 
+            value: string value to which key will be assigned
+            
+        Returns:
+            N/A
+            
+        Raises:
+            M/A
+        '''
         super().__setitem__(key, value)
             
     def get(self, key, key_sep=None):
-        '''
-        The get dict function '[]' was enhanced to include hierarchical get.
-        on the item a.b.c; get will try to get c, a.c, and a.b.c.
+        ''' Like get dict function '[]' but include hierarchical relations.
+        
+        Get will look for key in it loaded properties.  
+        
+        Assuming key is property path, the following order of search will be done:
+            if key is 'a.b.c.:
+            first lookup c, 
+            then lookup a.c, 
+            and last look for a.b.c.
         The last one available, wins.
+        
+        Args:
+        
+        Returns:
+            
         '''
         key_sep=key_sep if key_sep is not None else self.key_sep
         kpart = key.split(key_sep)
         kname = kpart[len(kpart)-1]
+        
+        # create list of part element from original path (without name
+        # start the list with empty string
         kpath_part = ['']
         if len(kpart) > 1:
             kpath_part[len(kpath_part):] =  kpart[0:len(kpart)-1]
+            
+        # TODO: reverse logic so the first one found wins
         kpath = ''
         value = None
         for part in kpath_part:
@@ -196,14 +247,6 @@ class __XMLProps(dict):
                 self.__set(store=this_dict, name=this_key, value=value, decrypt=decrypt)
         return this_dict
     
-    def write(self, props_file=None):
-        doc=etree.ElementTree()
-        for name, value in self.items():
-            doc.Element(tag='entry', attrib={'name':name, 'value':value} )
-        doc_file=self.conf_file if props_file is None else props_file
-        if doc_file is not None:
-            doc.write(doc_file)
-            
 
 class XMLPropsFile(__XMLProps):
     '''
@@ -219,7 +262,9 @@ class XMLPropsFile(__XMLProps):
     on the item a.b.c; get will try to get c, a.c, and a.b.c.
     The last one available, wins.
     
-    The write() function updates 
+    The updats() 
+    
+    The writes() function saves or perform "save as" for it loaded property file.
     '''
     
     def __init__(self, props, environ=None, key_sep='.', decrypt_method=None, decrypt_params={}): 
@@ -230,9 +275,11 @@ class XMLPropsFile(__XMLProps):
                 environ: environment by which to translate values
                 key_sep: default separator to use as key parts separator
         '''
+        self.props_file=props
         
         # first load default file provided by path
         # will point to: /var/ezcoord/ezcoord.properties
+        
         if  os.path.exists(props):
             #print('loading configuration file {file}'.format(file=conf_file))
             try:
@@ -247,18 +294,67 @@ class XMLPropsFile(__XMLProps):
             raise XMLPropsError('Props file {} not found'.format(props))
         
         super().__init__(root=root, environ=environ, key_sep=key_sep)
+
+    def writes(self, props_file=None):
+        ''' Writes loaded and possibly updated props into property file
+        
+        writes() will either write a new property file of override existing one with it loaded properties.
+            
+        Args:
+            props_file: a path to property file.  If none provided, the file loaded will be overwritten.
+                
+        Returns:
+            None
+            
+        Raises:
+            XMLPropsWriteFileError 
+        '''
+        doc=etree.ElementTree()
+        for name, value in self.items():
+            doc.Element(tag='entry', attrib={'name':name, 'value':value} )
+        doc_file=self.props_file if props_file is None else props_file
+        if doc_file is not None:
+            try:
+                doc.write(doc_file)
+            except Exception as e:
+                raise XMLPropsWriteError(repr(e))
+            
  
 
 class XMLPropsStr(__XMLProps): 
     def __init__(self, props, environ=None, key_sep='.', decrypt_method=None, decrypt_params={}): 
-        '''
-            Initialize properties object out of props as string
-            Parameters:
-                props: properties string to load
-                environ: environment by which to translate values
-                key_sep: default separator to use as key parts separator
+        ''' Creates XMLProps object from string XML
+        
+        Reads props as string to create property object that would than 
+        could be accessed and manipulated using XMLProps methods
+        
+        Args:
+            props: properties string to load
+            environ: environment by which to translate values
+            key_sep: default separator to use as key parts separator
+            decrypt_method: method to use to decrypt encrypted fields 
+            decrypt_params: parameters to pass and use in the decryption process.
+           
+        Returns:
+            XMLProps object
+            
+        Raises:
+            XMLPropsError if error occurred in the acquisition process.
+        
         '''
         
         root=etree.fromstring(props)           
         
         super().__init__(root=root, environ=environ, key_sep=key_sep)
+
+    def writes(self,):
+        doc=etree.ElementTree()
+        for name, value in self.items():
+            doc.Element(tag='entry', attrib={'name':name, 'value':value} )
+            
+        try:
+            result=doc.tostring()
+        except Exception as e:
+            raise  XMLPropsWriteError(repr(e))
+        
+        return result
