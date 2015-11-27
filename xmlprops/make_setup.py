@@ -99,7 +99,7 @@ setup_info = OrderedDict([
     #'scripts':['accord/bin/accord-admin.py'],
     #'py_modules':['pem'],
     ('classifiers',[
-        'Development Status :: 4 - Beta',
+        'Development Status :: 5 - Production/Stable',
         'Environment :: Other Environment',
         'Framework :: Project Settings and Operation',
         'Intended Audience :: Developers',
