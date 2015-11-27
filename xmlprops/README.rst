@@ -11,7 +11,7 @@ There are two main classes xmlprops provides:
 Both classes inherit from *dict* class.
 Both classes provide similar methods to allow stractured access to the properties.    
 
-Both classes inherit same base class that provides access and manipulation 
+Both classes inherit same base  class that provides access and manipulation 
 methods that used by XMLProps family.  
 
 A property is represented by key value XML entries.
