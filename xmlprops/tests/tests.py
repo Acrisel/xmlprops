@@ -10,96 +10,95 @@ import os
 from xmlprops import XMLPropsStr
 from xmlprops import XMLPropsFile
 
-props_xml_01='''<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE properties SYSTEM "http://java.sun.com/dtd/properties.dtd">
-<properties>
-
-<comment>
-  This properties file provides MySql configuration 
-  definitions for Tax tables DB
-</comment>
-
-<comment>Provide the type of DB this properties for</comment>
-<entry key="product">MySql</entry>
-
-<comment>Pool Level Defaults</comment>
-<entry key="service_mode">BF</entry>
-<entry key="exposure">shared</entry>
-<entry key="makers">db1</entry>
-
-<comment>Resource Making Defaults</comment>
-<entry key="max_active">10</entry>
-<entry key="init_active">1</entry>
-
-<comment>Resource Information</comment>
-<entry key="db1.user">userdb</entry>
-<entry key="db1.password">passworddb</entry>
-<entry key="db1.host">hostdb</entry>
-<entry key="db1.port">portdb</entry>
-<entry key="db1.database">databasedb</entry>
-<entry key="db1.use_unicode">True</entry>
-<entry key="db1.charset">utf8</entry>
-<entry key="db1.priority">1</entry>
-<entry key="db1.priority">2</entry>
-
-</properties>
-'''
 
 class TestXMLProps(unittest.TestCase):
 
-    def test_get_match_str(self):
-        xmlprops=XMLPropsStr(props=props_xml_01)
-        
-        self.assertEqual(xmlprops.get_match(key_prefix='db1.')['password'], 'passworddb')
-        self.assertEqual(xmlprops.get_match(key_prefix='db1.password')[''], 'passworddb')
-    
-    def test_get_order_match_str(self):
-        xmlprops=XMLPropsStr(props=props_xml_01)
-        
-        self.assertEqual(xmlprops.get_match(key_prefix='db1.')['priority'], '2')
-        self.assertEqual(xmlprops.get_match(key_prefix='db1.priority')[''], '2')
-    
-    def test_get_match_file(self):
-        """ 
-        Write configuration definition to file and unit-test XMLPropsFile
-        This is to keep consistency with unit-tests for XMLPropsStr
-        """
-        config_file_name = "props_unit_test.xml"
+    def test_get_match(self):
         try:
-            target_file = open(config_file_name,"w")
-            target_file.write(props_xml_01)
-            target_file.close()
+            config_file = 'props_unit_test.xml'
+            root_loc=os.path.dirname(__file__)
+            config_file_name=os.path.join(root_loc,config_file)
+            source_file = open(config_file_name,"r")
+            props_xml_01 = source_file.read()
+            source_file.close()
+            xmlprops_str=XMLPropsStr(props=props_xml_01)
+            xmlprops_file=XMLPropsFile(props=config_file_name)
         except Exception as e:
-                raise Exception('Failed to create and write to file: {}; {}; {}'.format(os.getcwd(),config_file_name, repr(e)))
-
-        xmlprops=XMLPropsFile(props=config_file_name)
-        os.remove(config_file_name)
+            raise Exception('Failed to open and read from file: {}; {}; {}'.format(os.getcwd(),config_file_name, repr(e)))
         
-        self.assertEqual(xmlprops.get_match(key_prefix='db1.')['password'], 'passworddb')
-        self.assertEqual(xmlprops.get_match(key_prefix='db1.password')[''], 'passworddb')
+        self.assertEqual(xmlprops_str.get_match(key_prefix='db1.')['password'], 'passworddb')
+        self.assertEqual(xmlprops_str.get_match(key_prefix='db1.password')[''], 'passworddb')
         
-    def test_get_order_match_file(self):
-        """ 
-        Write configuration definition to file and unit-test XMLPropsFile
-        This is to keep consistency with unit-tests for XMLPropsStr
-        """
-        config_file_name = "props_unit_test.xml"
+        self.assertEqual(xmlprops_file.get_match(key_prefix='db1.')['password'], 'passworddb')
+        self.assertEqual(xmlprops_file.get_match(key_prefix='db1.password')[''], 'passworddb')
+    
+    def test_get_order_match(self):
         try:
-            target_file = open(config_file_name,"w")
-            target_file.write(props_xml_01)
-            target_file.close()
+            config_file = 'props_unit_test.xml'
+            root_loc=os.path.dirname(__file__)
+            config_file_name=os.path.join(root_loc,config_file)
+            source_file = open(config_file_name,"r")
+            props_xml_01 = source_file.read()
+            source_file.close()
+            xmlprops_str=XMLPropsStr(props=props_xml_01)
+            xmlprops_file=XMLPropsFile(props=config_file_name)
         except Exception as e:
-                raise Exception('Failed to create and write to file: {}; {}; {}'.format(os.getcwd(),config_file_name, repr(e)))
-
-        xmlprops=XMLPropsFile(props=config_file_name)
-        os.remove(config_file_name)
+            raise Exception('Failed to open and read from file: {}; {}; {}'.format(os.getcwd(),config_file_name, repr(e)))
         
-        self.assertEqual(xmlprops.get_match(key_prefix='db1.')['priority'], '2')
-        self.assertEqual(xmlprops.get_match(key_prefix='db1.priority')[''], '2')
+        self.assertEqual(xmlprops_str.get_match(key_prefix='db1.')['priority'], '2')
+        self.assertEqual(xmlprops_str.get_match(key_prefix='db1.priority')[''], '2')
+        
+        self.assertEqual(xmlprops_file.get_match(key_prefix='db1.')['priority'], '2')
+        self.assertEqual(xmlprops_file.get_match(key_prefix='db1.priority')[''], '2')
+    
+    def test_get_contain(self):
+        try:
+            config_file = 'props_unit_test.xml'
+            root_loc=os.path.dirname(__file__)
+            config_file_name=os.path.join(root_loc,config_file)
+            source_file = open(config_file_name,"r")
+            props_xml_01 = source_file.read()
+            source_file.close()
+            xmlprops_str=XMLPropsStr(props=props_xml_01)
+            xmlprops_file=XMLPropsFile(props=config_file_name)
+        except Exception as e:
+            raise Exception('Failed to open and read from file: {}; {}; {}'.format(os.getcwd(),config_file_name, repr(e)))
+  
+        self.assertEqual(xmlprops_str.get_contain('host'), {'host': 'hw_host', 'db1.host': 'hostdb'})
+        self.assertEqual(xmlprops_str.get_contain(key_value='host',exact_match=True), {'host': 'hw_host'})
+        self.assertEqual(xmlprops_str.get_contain('db1.host'), {'db1.host': 'hostdb'})
+        self.assertEqual(xmlprops_str.get_contain('db.\.port'), {'db2.port': 'portdb2', 'db1.port': 'portdb1'})
+        
+        self.assertEqual(xmlprops_file.get_contain('host'), {'host': 'hw_host', 'db1.host': 'hostdb'})
+        self.assertEqual(xmlprops_file.get_contain(key_value='host',exact_match=True), {'host': 'hw_host'})
+        self.assertEqual(xmlprops_file.get_contain('db1.host'), {'db1.host': 'hostdb'})
+        self.assertEqual(xmlprops_file.get_contain('db.\.port'), {'db2.port': 'portdb2', 'db1.port': 'portdb1'})
+    
+    def test_get(self):
+        try:
+            config_file = 'props_unit_test.xml'
+            root_loc=os.path.dirname(__file__)
+            config_file_name=os.path.join(root_loc,config_file)
+            source_file = open(config_file_name,"r")
+            props_xml_01 = source_file.read()
+            source_file.close()
+            xmlprops_str=XMLPropsStr(props=props_xml_01)
+            xmlprops_file=XMLPropsFile(props=config_file_name)
+        except Exception as e:
+            raise Exception('Failed to open and read from file: {}; {}; {}'.format(os.getcwd(),config_file_name, repr(e)))
+  
+        self.assertEqual(xmlprops_str.get_contain('host'), {'host': 'hw_host', 'db1.host': 'hostdb'})
+        self.assertEqual(xmlprops_str.get_contain(key_value='host',exact_match=True), {'host': 'hw_host'})
+        self.assertEqual(xmlprops_str.get_contain('db1.host'), {'db1.host': 'hostdb'})
+        self.assertEqual(xmlprops_str.get_contain('db.\.port'), {'db2.port': 'portdb2', 'db1.port': 'portdb1'})
+        
+        self.assertEqual(xmlprops_file.get_contain('host'), {'host': 'hw_host', 'db1.host': 'hostdb'})
+        self.assertEqual(xmlprops_file.get_contain(key_value='host',exact_match=True), {'host': 'hw_host'})
+        self.assertEqual(xmlprops_file.get_contain('db1.host'), {'db1.host': 'hostdb'})
+        self.assertEqual(xmlprops_file.get_contain('db.\.port'), {'db2.port': 'portdb2', 'db1.port': 'portdb1'})
 
 
 if __name__ == '__main__':
-    #unittest.main()
     suite = unittest.TestSuite()
     suite.addTest(unittest.makeSuite(TestXMLProps))
     unittest.TextTestRunner(verbosity=2, stream=sys.stdout).run(suite)

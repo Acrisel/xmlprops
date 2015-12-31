@@ -282,7 +282,7 @@ class XMLProps(OrderedDict):
         If value_sep provided, it is used to separate the value of the element
         into a list.
         '''
-        
+
         if ignore_case:
             key_value=key_value.lower()
             
