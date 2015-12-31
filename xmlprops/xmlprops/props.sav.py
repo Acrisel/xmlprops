@@ -4,7 +4,7 @@ Created on Oct 13, 2013
 @author: arnon
 '''
 import xml.etree.ElementTree as etree
-from xml.dom import minidom
+import os.path
 from .expandvars import expandvars
 from collections import OrderedDict
 from collections import Mapping
@@ -23,12 +23,8 @@ class XMLPropsError(Exception):
 class XMLPropsWriteError(XMLPropsError):
     pass
 
-class PropElm(object):
-    def __init__(self, value, comment):
-        self.value=value
-        self.comment=comment
     
-class XMLProps(OrderedDict):
+class __XMLProps(dict):
     ''' Base class for XMLProps XMLProps family classes for shared methods
     
     As base class for XMLProps family, provides access and manipulation 
@@ -57,16 +53,13 @@ class XMLProps(OrderedDict):
 
     '''
     
-    def __init__(self, root=None, comment=None, encoding='utf-8', environ=None, key_sep='.', decryptor=None): 
+    def __init__(self, root, environ=None, key_sep='.', decrypt_method=None, decrypt_params={}): 
         '''Transform property XML etree into properties dictionary
         
         Args:
             root: etree root element from which to start process properties
-            comment: comment to add under root
-            encoding: for the XML
             environ: environment by which to translate values
-            key_sep: default separator to use as key parts separator
-            decryptor: decrypt lambda function
+            sep: default separator to use as key parts separator
             
         Returns:
             XMLProps object
@@ -79,77 +72,20 @@ class XMLProps(OrderedDict):
         self.key_sep=key_sep if key_sep is not None else '.'
         # TODO: ensure env is defined is this logic tree
         if environ is None:
-            self.env=OrderedDict()
+            env=OrderedDict()
         elif isinstance(environ, Mapping):
-            self.env=OrderedDict(environ)
+            env=OrderedDict(environ)
         elif found_environ is not None and isinstance(environ, Environ):
-            self.env=environ._asdict()
+            env=environ._asdict()
                 
         # translate props XML tree into dictionary
-        if root:
-            for entry in root.findall('entry'):
-                key=entry.attrib['key']
-                value=expandvars(entry.text, self.env)
-                super().__setitem__(key, value)
-                self.env[key]=value
-                
-    def loads(self, props, root=None):
-        ''' 
-        Load properties from props (string); if root provided, use
-        element named by root to start scanning props.
-        '''
-        top_root=etree.fromstring(props)  
-        if not root:  
-            roots=[top_root]
-        else:       
-            roots=[entry for entry in top_root.findall(root)]
-            if top_root.tag == root:
-                roots=[top_root]+roots
+        for entry in root.findall('entry'):
+            key=entry.attrib['key']
+            value=expandvars(entry.text, env)
+            super().__setitem__(key, value)
+            env[key]=value
             
-        for root in roots:
-            for entry in root.findall('entry'):
-                key=entry.attrib['key']
-                value=expandvars(entry.text, self.env)
-                super().__setitem__(key, value)
-                self.env[key]=value
-                
-    def load(self, props_file, root=None):
-        with open(props_file, 'r') as f:
-            xml_raw=f.read()
-        self.loads(props=xml_raw, root=root)
-                
-    def dumps(self, root='properties', encoding="us-ascii", method="xml",):
-        '''
-        creates XML string with property entries. If root is provided, 
-        it will be used as name for the root element.
-        '''
-        doc=etree.Element(root)
-        for name, value in self.items():
-            etree.SubElement( doc, 'entry', attrib={'name':name, 'value':value} )
-            
-        try:
-            xml_raw=etree.tostring(doc, encoding=encoding, method=method)
-        except Exception as e:
-            raise  XMLPropsWriteError(repr(e))
-        
-        reparsed = minidom.parseString(xml_raw)
-        xml_pretty = reparsed.toprettyxml(indent="    ", encoding=encoding)
-        return xml_pretty.decode(encoding)   
-    
-    def dump(self, props_file, root='properties', encoding="us-ascii", method="xml",):     
-        '''
-        Writes props xml to file.
-        
-        Args:
-            props_file: path to file to be written
-            
-        '''
-        xml=self.dumps(root=root, encoding=encoding, metod=method)
-        
-        with open(props_file, 'w') as f:
-            f.write(xml)
-        
-    def set(self, key, value, comment=None):
+    def set(self, key, value):
         ''' sets dict entry 'key' to 'value'
         
         Args:
@@ -311,7 +247,7 @@ class XMLProps(OrderedDict):
         return this_dict
     
 
-class XMLPropsFile(XMLProps):
+class XMLPropsFile(__XMLProps):
     '''
     xmlprops reads and manipulate properties file Java XML style
     It keeps properties and provides service to pick them
@@ -338,11 +274,27 @@ class XMLPropsFile(XMLProps):
                 environ: environment by which to translate values
                 key_sep: default separator to use as key parts separator
         '''
-        super().__init__(environ=environ, key_sep=key_sep)
         self.props_file=props
-        self.load(props_file=self.props_file)
         
-    def writes(self, props_file=None, root='properties', encoding="us-ascii", method="xml",):
+        # first load default file provided by path
+        # will point to: /var/ezcoord/ezcoord.properties
+        
+        if  os.path.exists(props):
+            #print('loading configuration file {file}'.format(file=conf_file))
+            try:
+                tree=etree.parse(props)
+            except Exception as e:
+                raise Exception('failed to open file: {}; {}'.format(props, repr(e)))
+            try:
+                root=tree.getroot()
+            except Exception as e:
+                raise Exception('failed to parse XML: {}'.format(repr(e)))
+        else:
+            raise XMLPropsError('Props file {} not found'.format(props))
+        
+        super().__init__(root=root, environ=environ, key_sep=key_sep)
+
+    def writes(self, props_file=None):
         ''' Writes loaded and possibly updated props into property file
         
         writes() will either write a new property file of override existing one with it loaded properties.
@@ -356,10 +308,19 @@ class XMLPropsFile(XMLProps):
         Raises:
             XMLPropsWriteFileError 
         '''
-        super().dump(props_file=props_file, root=root, encoding=encoding, method=method)
-    
+        doc=etree.ElementTree()
+        for name, value in self.items():
+            doc.Element(tag='entry', attrib={'name':name, 'value':value} )
+        doc_file=self.props_file if props_file is None else props_file
+        if doc_file is not None:
+            try:
+                doc.write(doc_file)
+            except Exception as e:
+                raise XMLPropsWriteError(repr(e))
+            
+ 
 
-class XMLPropsStr(XMLProps): 
+class XMLPropsStr(__XMLProps): 
     def __init__(self, props, environ=None, key_sep='.', decrypt_method=None, decrypt_params={}): 
         ''' Creates XMLProps object from string XML
         
@@ -379,12 +340,20 @@ class XMLPropsStr(XMLProps):
         Raises:
             XMLPropsError if error occurred in the acquisition process.
         
-        '''          
+        '''
         
-        super().__init__(environ=environ, key_sep=key_sep)
-        self.loads(props)
+        root=etree.fromstring(props)           
+        
+        super().__init__(root=root, environ=environ, key_sep=key_sep)
 
-    def writes(self, root='properties', encoding="us-ascii", method="xml",):
-        result=self.dumps(root, encoding, method)
+    def writes(self,):
+        doc=etree.ElementTree()
+        for name, value in self.items():
+            doc.Element(tag='entry', attrib={'name':name, 'value':value} )
+            
+        try:
+            result=doc.tostring()
+        except Exception as e:
+            raise  XMLPropsWriteError(repr(e))
         
-        return result        
+        return result
