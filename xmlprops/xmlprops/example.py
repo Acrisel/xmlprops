@@ -26,14 +26,14 @@ print(xmlprops.writes())
 
 result=xmlprops.get_keys(prefix="Yorkshire",keys=["Head", "Phone"])
 
-print('result', result)
+#################
 
 props=XMLProps()
 props.loads(props_xml_str, root='properties')
 #props.load(props_xml_file_desc, root='properties')
 
 schools=props.get('Dallas.Schools')
-print('schools', schools)
+
 props.set('Dallas.Schools', schools + ' Levinta', comment='Schools in Dallas city area')
 props.set('Levinta.Head', 'Jordan')
 props.set('Levinta.Phone', '214-456-8745')
